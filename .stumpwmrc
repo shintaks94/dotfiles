@@ -1,0 +1,102 @@
+; -*- Mode: Lisp; Mode: StumpWM; -*-
+(in-package :stumpwm)
+
+(setq *startup-message* nil)
+
+; --- loading modules
+(loop for file in '("battery" "notifications")
+      do (load (make-pathname :name file :type "lisp" :directory
+                              '(:relative ".stumpwm.d" "contrib"))))
+
+(load-module "battery-portable")
+(load-module "mem")
+; --- font settings ---------------------------------------------
+(set-font "-mplus-m+gothic-medium-r-normal--12-120-75-75-c-120-iso10646-1")
+
+; --- process management ----------------------------------------
+(defun ps-exists (ps)
+  (let ((f "ps -ef | grep ~S | grep -v -e grep -e stumpish | wc -l"))
+    (< 0 (parse-integer (run-shell-command (format nil f ps) t)))))
+
+(defun start-uniq-command-ps (command &key options (background t))
+  (unless (ps-exists command)
+    (run-shell-command
+     (concat command " " options " " (when background "&")))))
+
+(defun kill-ps-command (command)
+  (format nil "kill -TERM `ps -ef | grep ~S | grep -v grep | awk '{print $2}'`"
+          command))
+
+(defun kill-ps (command)
+  (run-shell-command (kill-ps-command command)))
+
+
+; --- stumpwm command definitions -------------------------------
+(defcommand emacs () ()
+						(run-or-raise "emacs" '(:class "Emacs")))
+
+;(defcommand google-chrome () ()
+;	(run-or-raise "google-chrome" '(:class "Google-chrome")))
+
+(defcommand chromium () ()
+						(run-or-raise "chromium" '(:class "Chromium-browser")))
+
+(defcommand firefox () ()
+            (run-or-raise "firefox-bin" '(:class "Firefox")))
+
+(defcommand mikutter () ()
+            (run-or-raise "mikutter" '(:class "Mikutter.rb")))
+
+(defcommand skype () ()
+						(run-or-raise "skype" '(:class "Skype")))
+
+;(defcommand chromium () ()
+;						(run-or-raise "chromium" '(:class "Chromium-browser")))
+
+(defcommand urxvt () ()
+						(run-or-raise "urxvt" '(:class "URxvt")))
+
+(defcommand conkeror () ()
+	(run-or-raise "conkeror" '(:class "Conkeror")))
+
+(defcommand shutter () ()
+	(run-or-raise "shutter" '(:class "Shutter")))
+
+(defcommand ps-kill (ps) ((:rest "Process to kill: "))
+  (kill-ps ps))
+
+(defcommand show-battery () ()
+  (echo-string (current-screen) (run-shell-command "acpi" t)))
+
+(defcommand uptime () ()
+  (echo-string (current-screen) (run-shell-command "uptime" t)))
+
+; --- run commands  ---------------------------------------
+(emacs)
+;(urxvt)
+; --- keybindings  ----------------------------------------
+(stumpwm:set-prefix-key (kbd "C-,"))
+(define-key *input-map* (kbd "C-m") 'input-submit)
+(define-key *input-map* (kbd "C-h") 'input-delete-backward-char)
+(define-key *input-map* (kbd "M-C-h") 'input-backward-kill-word)
+(define-key *root-map*   (kbd "0")   "remove")
+(define-key *root-map*   (kbd "1")   "only")
+(define-key *root-map*   (kbd "2")   "vsplit")
+(define-key *root-map*   (kbd "3")   "hsplit")
+(define-key *root-map* (kbd "s")     "chromium")
+(define-key *root-map* (kbd "S")     "chromium")
+(define-key *root-map* (kbd "f")     "firefox")
+(define-key *root-map* (kbd "F")     "firefox")
+(define-key *root-map* (kbd "m")     "mikutter")
+(define-key *root-map* (kbd "c")     "urxvt")
+;(define-key *root-map* (kbd "c")         nil)
+(setq *input-window-gravity* :center)
+(setq *mode-line-position* :bottom)
+(setq *mode-line-background-color* :blue)
+(setq *mode-line-border-color* :green)
+
+(stumpwm:toggle-mode-line (stumpwm:current-screen)
+                          (stumpwm:current-head))
+
+(setf *screen-mode-line-format*
+			(list '(:eval (run-shell-command  "date '+%m/%d_%H:%M'|tr -d [:cntrl:]" t) )" [[%B]] %M|%W|"))
